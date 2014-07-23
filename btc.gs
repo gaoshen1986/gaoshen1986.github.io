@@ -1,0 +1,203 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="Keywords" content="blog"/>
+    <meta name="Description" content="blog"/>
+    <title>Simple</title>
+    <link rel="shortcut icon" href="/static/favicon.png"/>
+    <link rel="stylesheet" type="text/css" href="/main.css" />
+</head>
+<body>
+<div class="main">
+    <div class="header">
+    	<ul id="pages">
+            <li><a href="/">home</a></li>
+            <li><a href="/#/tags">tags</a></li>
+            <li><a href="/#/archive">archive</a></li>
+    	</ul>
+    </div>
+	<div class="wrap-header">
+	<h1>
+    <a href="/" id="title"></a>
+	</h1>
+	</div>
+<div id="md" style="display: none;">
+<!-- markdown -->
+
+Bitcoin是最早实现“加密货币”这一概念的系统，该设想最早由戴伟（Dai Wei,音译）于1998年在cypherpunks函件用户组首次提出的。 它建立在这样一个概念之上，即货币可以是任何东西或记录，只要它在一个国家或社会经济体系内被接受为商品服务的支付方式，或是债务偿还的方式。比特币的设计核心思想是以数学题答案作为货币，其发行权独立于任何中央机构之外。
+
+我是最近接触Bitcoin的，他的复杂的机制和需要大规模的计算来换取BTC（bitcoin的缩写）很吸引我，我花了些时间简单的了解他的机理，由于网上对他的介绍的中文很少，而且有些写得不是很对，容易误导，官网wiki中文只翻译了部分，所以我写了这个，供大家参考。
+
+##明确概念
+* 第一个是BTC，就是这个货币，和RMB一样是个单位
+* 第二，Transaction，表示一条交易记录，里面包含了货币接收方的address和BTC数量
+* 第三，Block，多个Transaction打包存为一个Block，每一个人的机器上都会自动下载所有的Blocks，从而才能够进行转账和查看address中金额，也就是说每个人的电脑都存数了网络上所有的交易（Transaction）
+* 第四，Blocks-chain，所有的Block都是连起来的，组成一个Block链。address相当于我们现实生活中的帐号，是你账户的唯一标识。
+
+##密码学的知识
+
+公开密钥加密（Public-key cryptography，也称为非对称密钥加密），该加密算法使用两个不同的密钥，各名为加密密钥和解密密钥。前者公开，又称公开密钥，简称公钥。后者保密，又称私有密钥，简称私钥。这两个金钥是数学相关，用某用户加密密钥加密后所得的信息，只能用该用户的解密密钥才能解密。公钥加密的另一用途是身份验证：用私钥加密的信息，可以用公钥对其解密。接收者由此可知：这条信息确实来自于拥有私钥的某人，公钥的形式就是数字证书。Bitcoin正是利用了这个加密方法的密钥不对称性的优点。address（例如1KTj9TdiXtPcerF4XsCsFWU5NEPpFfdLiv）实际上就是一个公钥，每一个有address的人的计算机中都会存有这个公钥对应的私钥，每一次对这个address中的BTC的转出交易必须有私钥进行签署，如果你的私钥丢失了，那么你的这个address里的BTC就再也拿不出来了。
+
+##工作原理
+转账的过程是这样的：把你要转到的address和金额合并成一个Transaction，并用你自己的私钥进行签署，并发到整个P2P的网络上，所以网络上所有的拥有你address的人都可以看的到这笔Transaction是要从哪里转到哪里转了多少钱，但是由于没有私钥，他们没有办法修改。
+
+我们有了一个新的Transaction就要有一个Block来存储它，所以要不断的生成Block，按照计划平均每十分钟生成一个Block，这个block成功生成后会给生成这个Block的人一笔奖赏，这就是miner赚钱的方法，这个我们一会再说。生成了一个存有这个transaction的block之后，那么整个blocks-chain的长度就增加了一个，所以网络上会以丢弃所有比这个短的block-chain的分支，所有的在线节点也会自动下载这个新的Block加到自己的index中来，当在网络上有一定人数的人认可你的transaction了，那么交易就认为合法。
+
+##防伪造
+怎么防止伪造货币？由于每一笔Transaction中都存数了来源address和目的addresss，所以每一笔钱都是可以追根溯源的，如果你想非法造币，那么你要修改整条chain，还要保证你的chain最后最长，所以如果你想自己伪造BTC货币那么你就要控制P2P网络上相当大一部分的机器，要他们生成新Block的速度比你自己伪造的速度慢，这样你伪造的才可能被公认，但是这个是相当小概率事件，几乎绝对不可能。
+
+如果 p2p 网络过大，交易Transaction不能尽量的迅速的广播到全网络。就会出来 p2p 的网络的局部保持有小群体共同认可的一份全局Transaction。多个全局Transaction的分支同时发展是有可能的。因为每个小群体都可能认为他们看见的那部分更长更有效。但是， 只有有人发现另一条分支更长，它就会转换阵营。所以，有一定的可能性，你的Transaction被一个小群体接受，但在一段时间后，被更大的阵营抛弃，所以非法的总会是非法的。
+
+##挖矿
+下面我们说怎么赚钱，也就是mining，挖矿，block的生成非常苛刻，一定要保证block的hash值的前几位为0，这个0的个数越多，需要计算的时间就越长，复杂度越大，所以如果网络中有一个人用了最短的时间生成了这个Block他将有权利在这个block中生成一个Transaction，而这个Transaction是给他的address中存取一定数额的BTC，现在这个数额是50BTC，按照规则，每四年数额减半，那么若干年后，BTC的数额少的可怜时候，谁来做miner，那么有另一个机制，就是可以从你给打包的Transaction那里收取fee，也就是消费，如果他给的多那么你当然会把它加进你的Block中来，从而你可以从所有的Block中的所有Transactions的fee中获得利润。
+
+所以现在开始mining吧，根据现在的BTC对USD的汇率是8.1，这个汇率每天都在浮动，如果你能自己创建一个block，那你就有50*8.1美元了。
+
+首先你要有一个address，所以你要去下载一个client，然后安装它，运行时会自动生成一个address，之后他会自动从网上下载所有的blocks，现在大概有128000个blocks，这个时候你的address才能够进行转账和查看transaction信息等等。
+
+如果你想自己mining，那可能你能制造一个block的概率很低，所以你不如加入一个mining pool，这样你的每一部分贡献会得到一定回报，相当于你贡献出你的计算量大家一起来挖一个。另外，CPU的挖矿能力也不太行了，都要用GPU，我用过一个AMD的CPU只能达到3Mhash/s，但是用GPU就完全不同了，nVIDIA的GPU采用CUDA架构在双精度计算上有优势，但是hash都是整型计算，CUDA似乎并不太适合，也可能是他用openCL的标准性能不高，总是ATI要比nVIDA的效率高，我用两张Tesla C1060的卡只能达到104Mhash/s，但是用ati的5870一张卡就能达到370Mhash/s。
+
+总之下载好GPU挖矿的软件，去注册个mining pool的帐号，我用的是http://deepbit.net/，然后绑定你的address，设置好最小的收款金额，就可以开始挖矿啦。我挖了两天已经有0.34BTC了。
+
+对了，由于你的address是要你自己维护的，要备份好wallet.dat文件，因为这里存储的是你的私钥，如果这个丢了那么你的钱就没有了，为了避免这个悲剧发生，简易你去注册个wallet，我用的是https://www.mybitcoin.com 这样wallet都有他们来托管，我们只要用账户登录就可以了（和支付宝有那么一点相似）
+
+##参考连接
+
+* [1] https://en.bitcoin.it/wiki/Main_Page   官方WIKI
+* [2] http://www.bitcoin.org/  官方网站
+* [3] http://shaneliu.org/archives/506  强烈推荐看看这篇
+* [4] http://btcchina.com/index.php 一个中文论坛
+* [5] https://github.com/downloads/Kiv/poclbm/guiminer-20110521.exe  GUI的GPU挖矿程序
+
+如果你觉得我写的对你有帮助可以denote我，我的address是：1H8FR8aWYCBd8MoXCBoEQUqw6pH7bq6kXi
+<!-- markdown end -->
+</div>
+<div class="entry" id="main">
+<!-- content -->
+<p>Bitcoin是最早实现“加密货币”这一概念的系统，该设想最早由戴伟（Dai Wei,音译）于1998年在cypherpunks函件用户组首次提出的。 它建立在这样一个概念之上，即货币可以是任何东西或记录，只要它在一个国家或社会经济体系内被接受为商品服务的支付方式，或是债务偿还的方式。比特币的设计核心思想是以数学题答案作为货币，其发行权独立于任何中央机构之外。</p>
+
+<p>我是最近接触Bitcoin的，他的复杂的机制和需要大规模的计算来换取BTC（bitcoin的缩写）很吸引我，我花了些时间简单的了解他的机理，由于网上对他的介绍的中文很少，而且有些写得不是很对，容易误导，官网wiki中文只翻译了部分，所以我写了这个，供大家参考。</p>
+
+<h2 id="">明确概念</h2>
+
+<ul>
+<li>第一个是BTC，就是这个货币，和RMB一样是个单位</li>
+<li>第二，Transaction，表示一条交易记录，里面包含了货币接收方的address和BTC数量</li>
+<li>第三，Block，多个Transaction打包存为一个Block，每一个人的机器上都会自动下载所有的Blocks，从而才能够进行转账和查看address中金额，也就是说每个人的电脑都存数了网络上所有的交易（Transaction）</li>
+<li>第四，Blocks-chain，所有的Block都是连起来的，组成一个Block链。address相当于我们现实生活中的帐号，是你账户的唯一标识。</li>
+</ul>
+
+<h2 id="">密码学的知识</h2>
+
+<p>公开密钥加密（Public-key cryptography，也称为非对称密钥加密），该加密算法使用两个不同的密钥，各名为加密密钥和解密密钥。前者公开，又称公开密钥，简称公钥。后者保密，又称私有密钥，简称私钥。这两个金钥是数学相关，用某用户加密密钥加密后所得的信息，只能用该用户的解密密钥才能解密。公钥加密的另一用途是身份验证：用私钥加密的信息，可以用公钥对其解密。接收者由此可知：这条信息确实来自于拥有私钥的某人，公钥的形式就是数字证书。Bitcoin正是利用了这个加密方法的密钥不对称性的优点。address（例如1KTj9TdiXtPcerF4XsCsFWU5NEPpFfdLiv）实际上就是一个公钥，每一个有address的人的计算机中都会存有这个公钥对应的私钥，每一次对这个address中的BTC的转出交易必须有私钥进行签署，如果你的私钥丢失了，那么你的这个address里的BTC就再也拿不出来了。</p>
+
+<h2 id="">工作原理</h2>
+
+<p>转账的过程是这样的：把你要转到的address和金额合并成一个Transaction，并用你自己的私钥进行签署，并发到整个P2P的网络上，所以网络上所有的拥有你address的人都可以看的到这笔Transaction是要从哪里转到哪里转了多少钱，但是由于没有私钥，他们没有办法修改。</p>
+
+<p>我们有了一个新的Transaction就要有一个Block来存储它，所以要不断的生成Block，按照计划平均每十分钟生成一个Block，这个block成功生成后会给生成这个Block的人一笔奖赏，这就是miner赚钱的方法，这个我们一会再说。生成了一个存有这个transaction的block之后，那么整个blocks-chain的长度就增加了一个，所以网络上会以丢弃所有比这个短的block-chain的分支，所有的在线节点也会自动下载这个新的Block加到自己的index中来，当在网络上有一定人数的人认可你的transaction了，那么交易就认为合法。</p>
+
+<h2 id="">防伪造</h2>
+
+<p>怎么防止伪造货币？由于每一笔Transaction中都存数了来源address和目的addresss，所以每一笔钱都是可以追根溯源的，如果你想非法造币，那么你要修改整条chain，还要保证你的chain最后最长，所以如果你想自己伪造BTC货币那么你就要控制P2P网络上相当大一部分的机器，要他们生成新Block的速度比你自己伪造的速度慢，这样你伪造的才可能被公认，但是这个是相当小概率事件，几乎绝对不可能。</p>
+
+<p>如果 p2p 网络过大，交易Transaction不能尽量的迅速的广播到全网络。就会出来 p2p 的网络的局部保持有小群体共同认可的一份全局Transaction。多个全局Transaction的分支同时发展是有可能的。因为每个小群体都可能认为他们看见的那部分更长更有效。但是， 只有有人发现另一条分支更长，它就会转换阵营。所以，有一定的可能性，你的Transaction被一个小群体接受，但在一段时间后，被更大的阵营抛弃，所以非法的总会是非法的。</p>
+
+<h2 id="">挖矿</h2>
+
+<p>下面我们说怎么赚钱，也就是mining，挖矿，block的生成非常苛刻，一定要保证block的hash值的前几位为0，这个0的个数越多，需要计算的时间就越长，复杂度越大，所以如果网络中有一个人用了最短的时间生成了这个Block他将有权利在这个block中生成一个Transaction，而这个Transaction是给他的address中存取一定数额的BTC，现在这个数额是50BTC，按照规则，每四年数额减半，那么若干年后，BTC的数额少的可怜时候，谁来做miner，那么有另一个机制，就是可以从你给打包的Transaction那里收取fee，也就是消费，如果他给的多那么你当然会把它加进你的Block中来，从而你可以从所有的Block中的所有Transactions的fee中获得利润。</p>
+
+<p>所以现在开始mining吧，根据现在的BTC对USD的汇率是8.1，这个汇率每天都在浮动，如果你能自己创建一个block，那你就有50*8.1美元了。</p>
+
+<p>首先你要有一个address，所以你要去下载一个client，然后安装它，运行时会自动生成一个address，之后他会自动从网上下载所有的blocks，现在大概有128000个blocks，这个时候你的address才能够进行转账和查看transaction信息等等。</p>
+
+<p>如果你想自己mining，那可能你能制造一个block的概率很低，所以你不如加入一个mining pool，这样你的每一部分贡献会得到一定回报，相当于你贡献出你的计算量大家一起来挖一个。另外，CPU的挖矿能力也不太行了，都要用GPU，我用过一个AMD的CPU只能达到3Mhash/s，但是用GPU就完全不同了，nVIDIA的GPU采用CUDA架构在双精度计算上有优势，但是hash都是整型计算，CUDA似乎并不太适合，也可能是他用openCL的标准性能不高，总是ATI要比nVIDA的效率高，我用两张Tesla C1060的卡只能达到104Mhash/s，但是用ati的5870一张卡就能达到370Mhash/s。</p>
+
+<p>总之下载好GPU挖矿的软件，去注册个mining pool的帐号，我用的是http://deepbit.net/，然后绑定你的address，设置好最小的收款金额，就可以开始挖矿啦。我挖了两天已经有0.34BTC了。</p>
+
+<p>对了，由于你的address是要你自己维护的，要备份好wallet.dat文件，因为这里存储的是你的私钥，如果这个丢了那么你的钱就没有了，为了避免这个悲剧发生，简易你去注册个wallet，我用的是https://www.mybitcoin.com 这样wallet都有他们来托管，我们只要用账户登录就可以了（和支付宝有那么一点相似）</p>
+
+<h2 id="">参考连接</h2>
+
+<ul>
+<li>[1] https://en.bitcoin.it/wiki/Main_Page   官方WIKI</li>
+<li>[2] http://www.bitcoin.org/  官方网站</li>
+<li>[3] http://shaneliu.org/archives/506  强烈推荐看看这篇</li>
+<li>[4] http://btcchina.com/index.php 一个中文论坛</li>
+<li>[5] https://github.com/downloads/Kiv/poclbm/guiminer-20110521.exe  GUI的GPU挖矿程序</li>
+</ul>
+
+<p>如果你觉得我写的对你有帮助可以denote我，我的address是：1H8FR8aWYCBd8MoXCBoEQUqw6pH7bq6kXi</p>
+<!-- content end -->
+</div>
+<br>
+<br>
+    <div id="disqus_thread"></div>
+	<div class="footer">
+		<p>© Copyright 2014 by isnowfy, Designed by isnowfy</p>
+	</div>
+</div>
+<script src="main.js"></script>
+<script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ["\\(", "\\)"]], processEscapes: true}});
+</script>
+<script id="content" type="text/mustache">
+    <h1>{{title}}</h1>
+    <div class="tag">
+    {{date}}
+    {{#tags}}
+    <a href="/#/tag/{{name}}">#{{name}}</a>
+    {{/tags}}
+    </div>
+</script>
+<script id="pagesTemplate" type="text/mustache">
+    {{#pages}}
+    <li>
+        <a href="{{path}}">{{title}}</a>
+    </li>
+    {{/pages}}
+</script>
+<script>
+$(document).ready(function() {
+    $.ajax({
+        url: "main.json",
+        type: "GET",
+        dataType: "json",
+        success: function(data) {
+            $("#title").html(data.name);
+            var pagesTemplate = Hogan.compile($("#pagesTemplate").html());
+            var pagesHtml = pagesTemplate.render({"pages": data.pages});
+            $("#pages").append(pagesHtml);
+            //path
+            var path = "btc.gs";
+            //path end
+            var now = 0;
+            for (var i = 0; i < data.posts.length; ++i)
+                if (path == data.posts[i].path)
+                    now = i;
+            var post = data.posts[now];
+            var tmp = post.tags.split(" ");
+            var tags = [];
+            for (var i = 0; i < tmp.length; ++i)
+                if (tmp[i].length > 0)
+                    tags.push({"name": tmp[i]});
+            var contentTemplate = Hogan.compile($("#content").html());
+            var contentHtml = contentTemplate.render({"title": post.title, "tags": tags, "date": post.date});
+            $("#main").prepend(contentHtml);
+            if (data.disqus_shortname.length > 0) {
+                var disqus_shortname = data.disqus_shortname;
+                (function() {
+                    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                })();
+            }
+        }
+    });
+});
+</script>
+</body>
+</html>
