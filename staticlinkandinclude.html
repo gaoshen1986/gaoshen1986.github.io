@@ -1,0 +1,367 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="Keywords" content="blog"/>
+    <meta name="Description" content="blog"/>
+    <title>Simple</title>
+    <link rel="shortcut icon" href="/static/favicon.png"/>
+    <link rel="stylesheet" type="text/css" href="/main.css" />
+</head>
+<body>
+<div class="main">
+    <div class="header">
+    	<ul id="pages">
+            <li><a href="/">home</a></li>
+            <li><a href="/#/tags">tags</a></li>
+            <li><a href="/#/archive">archive</a></li>
+    	</ul>
+    </div>
+	<div class="wrap-header">
+	<h1>
+    <a href="/" id="title"></a>
+	</h1>
+	</div>
+<div id="md" style="display: none;">
+<!-- markdown -->
+## include简介
+最简单的对于include的理解可以这样理解，实际上他就是把多个文件组成一个文件，编译的时候include的所有的文件都会包含到C/CPP文件中，这里涉及到一个重复定义的问题#ifndef来解决这个问题，大家应该都会使用。
+
+## 静态链接简介
+静态链接是把多个目标文件链接成一个可执行文件，这些链接过程在编译时候就完成的就是静态链接。下面我们来举例说明静态链接和include的区别。
+
+##比较 Case1
+我们现在定义三个文件a.h/c main.c
+a.h:
+
+	void funca();
+	
+a.c:
+
+	#include <stdio.h>
+	#include "a.h"
+	void funca(){
+		printf("Hello\n");
+	}
+
+main.c:
+
+	int main(){
+	funca();
+	return 0;
+	}
+	
+下面我们编译一下生成目标文件
+
+	gcc -c a.c
+	gcc -c main.c
+	
+然后我们用objdump来查看下目标文件
+
+	objdump -t a.o
+
+可以得到如下结果
+
+	SYMBOL TABLE:
+	0000000000000000 l    df *ABS*	0000000000000000 a.c
+	0000000000000000 l    d  .text	0000000000000000 .text
+	0000000000000000 l    d  .data	0000000000000000 .data
+	0000000000000000 l    d  .bss	0000000000000000 .bss
+	0000000000000000 l    d  .rodata	0000000000000000 .rodata
+	0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+	0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+	0000000000000000 l    d  .comment	0000000000000000 .comment
+	0000000000000000 g     F .text	0000000000000010 funca
+	0000000000000000         *UND*	0000000000000000 puts
+	
+我们可以看到我们自己定义的函数funca
+在查看下main.o
+
+	SYMBOL TABLE:
+	0000000000000000 l    df *ABS*	0000000000000000 main.c
+	0000000000000000 l    d  .text	0000000000000000 .text
+	0000000000000000 l    d  .data	0000000000000000 .data
+	0000000000000000 l    d  .bss	0000000000000000 .bss
+	0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+	0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+	0000000000000000 l    d  .comment	0000000000000000 .comment
+	0000000000000000 g     F .text	0000000000000015 main
+	0000000000000000         *UND*	0000000000000000 funca
+	
+main中有一个未定义的函数funca，虽然main.c这里并没有include “a.h” 但是这并不影响最后的连接 我们可以得到一个最终正确的应用程序。
+
+##比较Case2
+修改main.c
+
+	#include "a.c"
+	int main(){
+		funca();
+		return 0;
+	}
+	
+在编译之后我们查看目标文件main.o，得到如下结果：
+
+	0000000000000000 l    df *ABS*	0000000000000000 main.c
+	0000000000000000 l    d  .text	0000000000000000 .text
+	0000000000000000 l    d  .data	0000000000000000 .data
+	0000000000000000 l    d  .bss	0000000000000000 .bss
+	0000000000000000 l    d  .rodata	0000000000000000 .rodata
+	0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+	0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+	0000000000000000 l    d  .comment	0000000000000000 .comment
+	0000000000000000 g     F .text	0000000000000010 funca
+	0000000000000000         *UND*	0000000000000000 puts
+	0000000000000010 g     F .text	0000000000000015 main
+	
+可见a.c被简单的直接加入到了main.c中，所以这里的funca 不是一个UND函数（UND 意为 undefined，是找不到这个函数的定义，需要从其他目标文件中寻找）。如果直接
+	gcc -o main main.o
+是可以直接得到一个正确的可执行文件的。
+
+##比较Case3
+把a.h/c中的funca改为static，这样理论上这个函数是不能被其他文件所使用的
+
+	#include <stdio.h>
+	#include "a.h"
+	static void funca(){
+		printf("Hello\n");
+	}
+	
+再重新编译获得main的目标文件，并查看：
+
+	SYMBOL TABLE:
+	0000000000000000 l    df *ABS*	0000000000000000 main.c
+	0000000000000000 l    d  .text	0000000000000000 .text
+	0000000000000000 l    d  .data	0000000000000000 .data
+	0000000000000000 l    d  .bss	0000000000000000 .bss
+	0000000000000000 l    d  .rodata	0000000000000000 .rodata
+	0000000000000000 l     F .text	0000000000000010 funca
+	0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+	0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+	0000000000000000 l    d  .comment	0000000000000000 .comment
+	0000000000000000         *UND*	0000000000000000 puts
+	0000000000000010 g     F .text	0000000000000015 main
+	
+可见我们依然可以正确的得到funca的定义。
+
+##总结
+* 1.正常函数的声明，默认就为extern
+* 2.static只是针对不同模块间链接的时候有效，并不是以前经常所说的其他文件中，应该叫其他目标文件中。
+* 3.实际上#include和静态链接两者是互通的，或者说作用及其相似，至少以我现在的经验来看，而且他们生成的最终文件大小是相同的。大概静态链接的方法更适合代码的管理吧。
+<!-- markdown end -->
+</div>
+<div class="entry" id="main">
+<!-- content -->
+<h2 id="include">include简介</h2>
+
+<p>最简单的对于include的理解可以这样理解，实际上他就是把多个文件组成一个文件，编译的时候include的所有的文件都会包含到C/CPP文件中，这里涉及到一个重复定义的问题#ifndef来解决这个问题，大家应该都会使用。</p>
+
+<h2 id="">静态链接简介</h2>
+
+<p>静态链接是把多个目标文件链接成一个可执行文件，这些链接过程在编译时候就完成的就是静态链接。下面我们来举例说明静态链接和include的区别。</p>
+
+<h2 id="case1">比较 Case1</h2>
+
+<p>我们现在定义三个文件a.h/c main.c
+a.h:</p>
+
+<pre><code>void funca();
+</code></pre>
+
+<p>a.c:</p>
+
+<pre><code>#include &lt;stdio.h&gt;
+#include "a.h"
+void funca(){
+    printf("Hello\n");
+}
+</code></pre>
+
+<p>main.c:</p>
+
+<pre><code>int main(){
+funca();
+return 0;
+}
+</code></pre>
+
+<p>下面我们编译一下生成目标文件</p>
+
+<pre><code>gcc -c a.c
+gcc -c main.c
+</code></pre>
+
+<p>然后我们用objdump来查看下目标文件</p>
+
+<pre><code>objdump -t a.o
+</code></pre>
+
+<p>可以得到如下结果</p>
+
+<pre><code>SYMBOL TABLE:
+0000000000000000 l    df *ABS*  0000000000000000 a.c
+0000000000000000 l    d  .text  0000000000000000 .text
+0000000000000000 l    d  .data  0000000000000000 .data
+0000000000000000 l    d  .bss   0000000000000000 .bss
+0000000000000000 l    d  .rodata    0000000000000000 .rodata
+0000000000000000 l    d  .note.GNU-stack    0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame  0000000000000000 .eh_frame
+0000000000000000 l    d  .comment   0000000000000000 .comment
+0000000000000000 g     F .text  0000000000000010 funca
+0000000000000000         *UND*  0000000000000000 puts
+</code></pre>
+
+<p>我们可以看到我们自己定义的函数funca
+在查看下main.o</p>
+
+<pre><code>SYMBOL TABLE:
+0000000000000000 l    df *ABS*  0000000000000000 main.c
+0000000000000000 l    d  .text  0000000000000000 .text
+0000000000000000 l    d  .data  0000000000000000 .data
+0000000000000000 l    d  .bss   0000000000000000 .bss
+0000000000000000 l    d  .note.GNU-stack    0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame  0000000000000000 .eh_frame
+0000000000000000 l    d  .comment   0000000000000000 .comment
+0000000000000000 g     F .text  0000000000000015 main
+0000000000000000         *UND*  0000000000000000 funca
+</code></pre>
+
+<p>main中有一个未定义的函数funca，虽然main.c这里并没有include “a.h” 但是这并不影响最后的连接 我们可以得到一个最终正确的应用程序。</p>
+
+<h2 id="case2">比较Case2</h2>
+
+<p>修改main.c</p>
+
+<pre><code>#include "a.c"
+int main(){
+    funca();
+    return 0;
+}
+</code></pre>
+
+<p>在编译之后我们查看目标文件main.o，得到如下结果：</p>
+
+<pre><code>0000000000000000 l    df *ABS*  0000000000000000 main.c
+0000000000000000 l    d  .text  0000000000000000 .text
+0000000000000000 l    d  .data  0000000000000000 .data
+0000000000000000 l    d  .bss   0000000000000000 .bss
+0000000000000000 l    d  .rodata    0000000000000000 .rodata
+0000000000000000 l    d  .note.GNU-stack    0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame  0000000000000000 .eh_frame
+0000000000000000 l    d  .comment   0000000000000000 .comment
+0000000000000000 g     F .text  0000000000000010 funca
+0000000000000000         *UND*  0000000000000000 puts
+0000000000000010 g     F .text  0000000000000015 main
+</code></pre>
+
+<p>可见a.c被简单的直接加入到了main.c中，所以这里的funca 不是一个UND函数（UND 意为 undefined，是找不到这个函数的定义，需要从其他目标文件中寻找）。如果直接
+    gcc -o main main.o
+是可以直接得到一个正确的可执行文件的。</p>
+
+<h2 id="case3">比较Case3</h2>
+
+<p>把a.h/c中的funca改为static，这样理论上这个函数是不能被其他文件所使用的</p>
+
+<pre><code>#include &lt;stdio.h&gt;
+#include "a.h"
+static void funca(){
+    printf("Hello\n");
+}
+</code></pre>
+
+<p>再重新编译获得main的目标文件，并查看：</p>
+
+<pre><code>SYMBOL TABLE:
+0000000000000000 l    df *ABS*  0000000000000000 main.c
+0000000000000000 l    d  .text  0000000000000000 .text
+0000000000000000 l    d  .data  0000000000000000 .data
+0000000000000000 l    d  .bss   0000000000000000 .bss
+0000000000000000 l    d  .rodata    0000000000000000 .rodata
+0000000000000000 l     F .text  0000000000000010 funca
+0000000000000000 l    d  .note.GNU-stack    0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame  0000000000000000 .eh_frame
+0000000000000000 l    d  .comment   0000000000000000 .comment
+0000000000000000         *UND*  0000000000000000 puts
+0000000000000010 g     F .text  0000000000000015 main
+</code></pre>
+
+<p>可见我们依然可以正确的得到funca的定义。</p>
+
+<h2 id="">总结</h2>
+
+<ul>
+<li>1.正常函数的声明，默认就为extern</li>
+<li>2.static只是针对不同模块间链接的时候有效，并不是以前经常所说的其他文件中，应该叫其他目标文件中。</li>
+<li>3.实际上#include和静态链接两者是互通的，或者说作用及其相似，至少以我现在的经验来看，而且他们生成的最终文件大小是相同的。大概静态链接的方法更适合代码的管理吧。</li>
+</ul>
+<!-- content end -->
+</div>
+<br>
+<br>
+    <div id="disqus_thread"></div>
+	<div class="footer">
+		<p>© Copyright 2014 by isnowfy, Designed by isnowfy</p>
+	</div>
+</div>
+<script src="main.js"></script>
+<script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ["\\(", "\\)"]], processEscapes: true}});
+</script>
+<script id="content" type="text/mustache">
+    <h1>{{title}}</h1>
+    <div class="tag">
+    {{date}}
+    {{#tags}}
+    <a href="/#/tag/{{name}}">#{{name}}</a>
+    {{/tags}}
+    </div>
+</script>
+<script id="pagesTemplate" type="text/mustache">
+    {{#pages}}
+    <li>
+        <a href="{{path}}">{{title}}</a>
+    </li>
+    {{/pages}}
+</script>
+<script>
+$(document).ready(function() {
+    $.ajax({
+        url: "main.json",
+        type: "GET",
+        dataType: "json",
+        success: function(data) {
+            $("#title").html(data.name);
+            var pagesTemplate = Hogan.compile($("#pagesTemplate").html());
+            var pagesHtml = pagesTemplate.render({"pages": data.pages});
+            $("#pages").append(pagesHtml);
+            //path
+            var path = "staticlinkandinclude.html";
+            //path end
+            var now = 0;
+            for (var i = 0; i < data.posts.length; ++i)
+                if (path == data.posts[i].path)
+                    now = i;
+            var post = data.posts[now];
+            var tmp = post.tags.split(" ");
+            var tags = [];
+            for (var i = 0; i < tmp.length; ++i)
+                if (tmp[i].length > 0)
+                    tags.push({"name": tmp[i]});
+            var contentTemplate = Hogan.compile($("#content").html());
+            var contentHtml = contentTemplate.render({"title": post.title, "tags": tags, "date": post.date});
+            $("#main").prepend(contentHtml);
+            if (data.disqus_shortname.length > 0) {
+                var disqus_shortname = data.disqus_shortname;
+                (function() {
+                    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                })();
+            }
+        }
+    });
+});
+</script>
+</body>
+</html>
